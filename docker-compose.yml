@@ -1,0 +1,18 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "4105:4105"
+    environment:
+      PORT: 4105
+      CORS_ORIGIN: http://127.0.0.1:5175
+      DB_FILE: /app/data/app-db.json
+    volumes:
+      - ./data:/app/data
+  frontend:
+    build: ./frontend
+    ports:
+      - "5105:80"
+    depends_on:
+      - backend
+
