@@ -1,7 +1,32 @@
-<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="256" height="256" rx="54" fill="#0f172a"/>
-  <path d="M128 32L206 76V134C206 178 174 218 128 230C82 218 50 178 50 134V76L128 32Z" stroke="#0f766e" stroke-width="12" stroke-linejoin="round"/>
-  <path d="M88 132C101 104 117 90 128 90C139 90 155 104 168 132C155 160 139 174 128 174C117 174 101 160 88 132Z" fill="#0f766e" fill-opacity="0.26" stroke="#22c55e" stroke-width="10"/>
-  <circle cx="128" cy="132" r="18" fill="#22c55e"/>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="UPI Social Proof Ledger animated logo">
+  <defs>
+    <linearGradient id="brand" x1="34" y1="32" x2="222" y2="222" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f766e">
+        <animate attributeName="stop-color" values="#0f766e;#22c55e;#0f766e" dur="5s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="55%" stop-color="#22c55e">
+        <animate attributeName="stop-color" values="#22c55e;#6366f1;#22c55e" dur="5s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.2 0 0 0 0 0.7 0 0 0 0 1 0 0 0 .45 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .bg{fill:#0f172a}
+      .ring{stroke:url(#brand);stroke-width:12;stroke-linecap:round;filter:url(#glow);stroke-dasharray:520;animation:dash 7s ease-in-out infinite}
+      .line{stroke:url(#brand);stroke-width:10;stroke-linecap:round;stroke-linejoin:round;filter:url(#glow)}
+      .thin{stroke-width:7}
+      .ghost{stroke:#6366f1;stroke-opacity:.42;stroke-width:8}
+      .node{fill:#22c55e;filter:url(#glow);animation:pulse 2.8s ease-in-out infinite}
+      .hot{fill:#6366f1;animation:pulse 2.1s ease-in-out infinite}
+      @keyframes dash{0%,100%{stroke-dashoffset:0}50%{stroke-dashoffset:120}}
+      @keyframes pulse{0%,100%{opacity:.72;transform:scale(.96);transform-origin:128px 128px}50%{opacity:1;transform:scale(1.08);transform-origin:128px 128px}}
+    </style>
+  </defs>
+  <rect width="256" height="256" rx="54" class="bg"/>
+  <path d="M128 30c54 0 98 44 98 98s-44 98-98 98-98-44-98-98 44-98 98-98z" class="ring"/>
+  <path d="M82 70h92v118H82z" class="line"/><path d="M104 108h48M104 132h38M104 156h54" class="line thin"/><path d="M94 80l70 98" class="line ghost"/><circle cx="166" cy="92" r="12" class="node hot"/>
 </svg>
-
