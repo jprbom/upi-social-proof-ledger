@@ -8,6 +8,19 @@
   <img src="assets/system-map.svg" width="100%" alt="UPI Social Proof Ledger system map">
 </p>
 
+## Latest Enhancement Map
+
+~~~mermaid
+flowchart LR
+  UI["Proof Timeline CTA"] --> AUTH["Signed Demo Token"]
+  AUTH --> API["Express API"]
+  API --> SIM["Payment Ecosystem Simulator"]
+  SIM --> TRUTH["Synthetic Truth Ledger"]
+  TRUTH --> VERIFY["Receipt / QR / RRN / Amount Checks"]
+  VERIFY --> SUMMARY["Dispute-ready Summary"]
+  SUMMARY --> UI
+~~~
+
 ## Product Decision Flow
 
 ~~~mermaid
@@ -37,12 +50,26 @@ sequenceDiagram
   participant Mock as Mock NPCI/UPI Rail
   participant DB as JSON Test DB
   User->>UI: Click tab, CTA, or row drill-down
-  UI->>API: Request with x-user-role
+  UI->>API: Request with signed demo bearer token
   API->>DB: Read/write synthetic records
   API->>Model: Score domain-specific risk or recommendation
   API->>Mock: Generate UPI-like response code, RRN, callback
   Mock-->>API: Sandbox response, no real money movement
   API-->>UI: Render decision, reason codes, and drill-down
+~~~
+
+## Payment Proof Verification Lifecycle
+
+~~~mermaid
+stateDiagram-v2
+  [*] --> SIMULATED_PAYMENT_TRUTH
+  SIMULATED_PAYMENT_TRUTH --> CLAIMED_PROOF
+  CLAIMED_PROOF --> QR_VPA_CHECK
+  QR_VPA_CHECK --> RRN_AMOUNT_CHECK
+  RRN_AMOUNT_CHECK --> DUPLICATE_TAMPER_CHECK
+  DUPLICATE_TAMPER_CHECK --> VERIFIED
+  DUPLICATE_TAMPER_CHECK --> NEEDS_BANK_CONFIRMATION
+  DUPLICATE_TAMPER_CHECK --> TAMPERED
 ~~~
 
 ## Deployment and SDLC View

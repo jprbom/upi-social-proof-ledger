@@ -1,5 +1,9 @@
 # Prototype Audit Response
 
+## Latest Audit Closure
+
+The latest implementation adds signed demo-token RBAC, a five-adapter payment ecosystem simulator, HMAC webhook signing, duplicate and out-of-order webhook handling, refund/dispute/reconciliation APIs, a frontend Payment Ecosystem Timeline, 10,000-row synthetic AIML/DL artifacts, and expanded enterprise documentation.
+
 ## Honest Status
 
 UPI Social Proof Ledger is a runnable portfolio-grade prototype, not a production receipt-forensics or bank-confirmation system. It demonstrates payment-proof risk decisioning, synthetic CRUD workflows, RBAC simulation, a mocked UPI/NPCI response, tests, CI, Docker packaging, and SDLC documentation.
@@ -20,11 +24,11 @@ It should not be presented as: **a real OCR, image-forensics, UTR-validation, or
 
 ## Prototype Boundaries
 
-- RBAC is a simulator. It uses `x-user-role`; production would require OIDC/JWT, signed sessions, tenant isolation, KMS-backed secrets, and immutable audit logs.
+- RBAC remains a simulator, but it now uses signed local demo bearer tokens and ignores forged `x-user-role`; production would still require OIDC/JWT, signed sessions, tenant isolation, KMS-backed secrets, and immutable audit logs.
 - Current proof logic accepts precomputed OCR, QR, tamper, duplicate, and seller-trust signals; it does not yet perform real image processing.
-- The ML script is educational and synthetic, not statistically valid image-forensics or receipt-fraud training.
+- The ML script now generates 10,000 synthetic rows with train/test metrics, confusion matrix, model card, and feature importance. It remains synthetic and not statistically valid production image-forensics or receipt-fraud training.
 - Persistence is JSON file storage, not an evidence vault, case store, or privacy-preserving proof ledger.
-- The UPI rail is fully mocked and does not connect to banks, PSPs, UTR confirmation APIs, chargeback systems, or dispute networks.
+- The payment ecosystem simulator is fully mocked and does not connect to banks, PSPs, UTR confirmation APIs, chargeback systems, or dispute networks.
 
 ## Serious Upgrade Path
 
@@ -33,4 +37,3 @@ It should not be presented as: **a real OCR, image-forensics, UTR-validation, or
 - Add dispute evidence PDF export with masked fields and privacy-safe redaction.
 - Add scenario tests for genuine receipt, edited receipt, reused screenshot, QR/VPA mismatch, and missing bank confirmation.
 - Add seller reputation graph and proof-sharing controls for WhatsApp/Instagram commerce workflows.
-
