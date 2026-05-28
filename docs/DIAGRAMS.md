@@ -1,4 +1,4 @@
-# UPI Social Proof Ledger Rich Diagrams
+# UPI Social Proof Ledger Concept-Specific Diagrams
 
 <p align="center">
   <img src="assets/hero.svg" width="100%" alt="UPI Social Proof Ledger hero diagram">
@@ -8,83 +8,53 @@
   <img src="assets/system-map.svg" width="100%" alt="UPI Social Proof Ledger system map">
 </p>
 
-## Decision Journey
-
-~~~mermaid
-flowchart TD
-  A["Screenshot/QR input"]:::start --> B["Template checks"]:::signal
-  B --> C["Tamper score"]:::model
-  C --> D["Seller trust"]:::decision
-  D --> E["Proof status"]:::output
-  E --> F["Audit trail + dashboard update"]:::audit
-
-  classDef start fill:#ecfeff,stroke:#22c55e,stroke-width:2px,color:#083344
-  classDef signal fill:#fef3c7,stroke:#6366f1,stroke-width:2px,color:#422006
-  classDef model fill:#eef2ff,stroke:#22c55e,stroke-width:2px,color:#1e1b4b
-  classDef decision fill:#fff7ed,stroke:#0f766e,stroke-width:2px,color:#431407
-  classDef output fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
-  classDef audit fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a
-~~~
-
-## Data Flow Diagram
+## Product Decision Flow
 
 ~~~mermaid
 flowchart LR
-  User["Role-aware user"]:::user --> UI["React dashboard"]:::ui
-  UI --> API["Express API"]:::api
-  API --> Guard{"RBAC allowed?"}:::guard
-  Guard -- "No" --> Deny["403 RBAC_DENIED"]:::deny
-  Guard -- "Yes" --> Validate["Zod schema validation"]:::guard
-  Validate --> Store[("Payment Proof Checks / Seller Trust Profiles")]:::data
-  Validate --> Engine["Verify payment proof"]:::model
-  Store --> Response["Dashboard JSON"]:::output
-  Engine --> Explain["Reason codes + narrative"]:::model
-  Explain --> Response
+  A["Proof Ledger"]:::start --> B["Proof Checks"]:::signal
+  B --> C["Seller Trust"]:::model
+  C --> D["Receipt Forensics"]:::decision
+  D --> E["QR Trust"]:::output
+  E --> F["Mock NPCI/UPI response + audit trail"]:::audit
 
-  classDef user fill:#f8fafc,stroke:#475569,color:#0f172a
-  classDef ui fill:#ecfeff,stroke:#22c55e,stroke-width:2px,color:#083344
-  classDef api fill:#fff7ed,stroke:#0f766e,stroke-width:2px,color:#431407
-  classDef guard fill:#fef3c7,stroke:#6366f1,stroke-width:2px,color:#422006
-  classDef deny fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#450a0a
-  classDef data fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
-  classDef model fill:#eef2ff,stroke:#22c55e,stroke-width:2px,color:#1e1b4b
-  classDef output fill:#f0fdf4,stroke:#6366f1,stroke-width:2px,color:#052e16
+  classDef start fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a
+  classDef signal fill:#ecfeff,stroke:#06b6d4,stroke-width:2px,color:#083344
+  classDef model fill:#eef2ff,stroke:#6366f1,stroke-width:2px,color:#1e1b4b
+  classDef decision fill:#fff7ed,stroke:#0f766e,stroke-width:2px,color:#431407
+  classDef output fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
+  classDef audit fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#422006
 ~~~
 
-## API Flow
+## End-to-End API Flow
 
 ~~~mermaid
 sequenceDiagram
-  participant User as Dashboard User
-  participant UI as React UI
+  participant User as RBAC User
+  participant UI as React Command Center
   participant API as Express API
-  participant RBAC as RBAC Gate
-  participant DB as JSON DB
-  participant Engine as Decision Engine
-  User->>UI: Select role and run workflow
+  participant Model as Domain AI Engine
+  participant Mock as Mock NPCI/UPI Rail
+  participant DB as JSON Test DB
+  User->>UI: Click tab, CTA, or row drill-down
   UI->>API: Request with x-user-role
-  API->>RBAC: Check read/write/admin permission
-  RBAC-->>API: Allow or deny
-  API->>DB: CRUD synthetic records
-  API->>Engine: Compute Verify payment proof
-  Engine-->>API: Decision + reason codes
-  API-->>UI: Render updated command center
+  API->>DB: Read/write synthetic records
+  API->>Model: Score domain-specific risk or recommendation
+  API->>Mock: Generate UPI-like response code, RRN, callback
+  Mock-->>API: Sandbox response, no real money movement
+  API-->>UI: Render decision, reason codes, and drill-down
 ~~~
 
-## Deployment View
+## Deployment and SDLC View
 
 ~~~mermaid
 flowchart TB
-  Repo["Private GitHub repo"]:::repo --> CI["npm run verify"]:::ci
-  CI --> Build["Backend dist + Frontend dist"]:::ci
-  Build --> Runtime["Node 22 runtime"]:::runtime
-  Runtime --> Backend["Express API :4105"]:::runtime
-  Runtime --> Frontend["Vite preview :5105"]:::runtime
-  Backend --> DB[("Mounted synthetic JSON DB")]:::data
-
-  classDef repo fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#2e1065
-  classDef ci fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#422006
-  classDef runtime fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
-  classDef data fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
+  Repo["Private GitHub repo"] --> CI["GitHub Actions: npm run verify"]
+  CI --> Tests["Backend + frontend tests"]
+  CI --> Audit["npm audit --audit-level=high"]
+  Tests --> Runtime["Node 22 runtime"]
+  Runtime --> Backend["Express API :4105"]
+  Runtime --> Frontend["Vite preview :5105"]
+  Backend --> Mock["/api/mock-upi NPCI sandbox"]
+  Backend --> DB[("Synthetic JSON database")]
 ~~~
-

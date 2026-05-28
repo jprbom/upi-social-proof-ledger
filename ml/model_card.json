@@ -1,0 +1,45 @@
+{
+  "project": "UPI Social Proof Ledger",
+  "target": "proof_tamper",
+  "features": [
+    "ocr_confidence",
+    "qr_match",
+    "utr_valid",
+    "tamper_score",
+    "seller_trust"
+  ],
+  "data_policy": "Synthetic portfolio data only; no live UPI/NPCI/bank/PSP/customer data.",
+  "models": {
+    "aiml_logistic_regression": {
+      "accuracy_on_synthetic_training_set": 1.0,
+      "weights": [
+        -1.7514,
+        -4.7026,
+        0.4523,
+        5.3598,
+        -3.2188
+      ],
+      "bias": 1.9665
+    },
+    "dl_tiny_neural_network": {
+      "accuracy_on_synthetic_training_set": 1.0,
+      "hidden_units": 4
+    }
+  },
+  "normalization": {
+    "min": [
+      0.76,
+      0,
+      0,
+      0.12,
+      0.35
+    ],
+    "max": [
+      0.97,
+      1,
+      1,
+      0.77,
+      0.91
+    ]
+  }
+}

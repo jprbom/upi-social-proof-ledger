@@ -5,6 +5,7 @@ import { requirePermission } from './auth.js';
 import type { JsonDatabase } from './db.js';
 import { verifySocialProof } from './engine.js';
 import { proofCheckInputSchema, sellerProfileInputSchema, proofVerificationInputSchema } from './schemas.js';
+import { buildMockUpiResponse, mockUpiRailRequestSchema } from './mockUpi.js';
 
 const collections = [
   { route: 'proof-checks', key: 'proofChecks', schema: proofCheckInputSchema, prefix: 'proof_' },
@@ -70,6 +71,14 @@ export function registerRoutes(app: Express, db: JsonDatabase) {
       next(error);
     }
   });
+
+  app.post('/api/mock-upi', requirePermission('read'), (req, res, next) => {
+    try {
+      const body = mockUpiRailRequestSchema.parse(req.body);
+      res.json(buildMockUpiResponse(body));
+    } catch (error) {
+      next(error);
+    }
+  });
+
 }
-
-

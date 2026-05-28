@@ -1,114 +1,109 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Activity, BrainCircuit, FileCheck2, Lock, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { Activity, AlertTriangle, BrainCircuit, CheckCircle2, Database, Eye, FileCheck2, Lock, Network, RefreshCw, Route, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { apiRequest } from './api';
 import { formatValue, toneForRisk } from './lib/viewModel';
+import { buildMockUpiRequest, getWorkflowTab, workflowTabs, type WorkflowTab } from './lib/workflow';
 
 type RecordItem = Record<string, unknown> & { id: string };
-type Metrics = { kpis: Record<string, number> };
-type DomainResult = Record<string, unknown> & { reasonCodes?: string[]; explanation?: string };
+type Metrics = { kpis: Record<string, number>; failureReasons?: Record<string, number> };
+type DomainResult = Record<string, unknown> & { reasonCodes?: string[]; explanation?: string; alternatives?: unknown[] };
+type MockUpiResult = {
+  gateway: string;
+  txnId: string;
+  rrn: string;
+  responseCode: string;
+  responseMessage: string;
+  npciStatus: string;
+  settlement: { mode: string; preSettlementHold: boolean; estimatedSettlementSeconds: number };
+  risk: { score: number; decision: string; reasonCodes: string[] };
+};
 
-const roles = [
-  "ADMIN",
-  "TRUST_MODERATOR",
-  "SELLER_ANALYST",
-  "DISPUTE_AGENT",
-  "VIEWER"
-];
-const primaryColumns = [
-  "claimantName",
-  "sellerVpa",
-  "amount",
-  "status",
-  "riskScore"
-];
-const fallbackPrimary = [
-  {
-    "id": "proof_001",
-    "claimantName": "Home baker order",
-    "sellerVpa": "sweetlane@upi",
-    "amount": 850,
-    "status": "VERIFIED",
-    "riskScore": 12,
-    "createdAt": "2026-05-27T11:30:00.000Z"
+const CONFIG = {
+  "title": "UPI Social Proof Ledger",
+  "short": "AI verification layer for payment claims, fake screenshots, QR trust, and social-commerce proof.",
+  "roles": [
+    "ADMIN",
+    "TRUST_MODERATOR",
+    "SELLER_ANALYST",
+    "DISPUTE_AGENT",
+    "VIEWER"
+  ],
+  "defaultRole": "ADMIN",
+  "primary": {
+    "label": "Proof Checks",
+    "route": "/proof-checks",
+    "columns": [
+      "claimantName",
+      "sellerVpa",
+      "amount",
+      "status",
+      "riskScore"
+    ],
+    "createPayload": {
+      "claimantName": "Demo seller claim",
+      "sellerVpa": "demo-seller@upi",
+      "amount": 1299,
+      "status": "LIKELY_GENUINE",
+      "riskScore": 28
+    },
+    "patchPayload": {
+      "status": "VERIFIED",
+      "riskScore": 18
+    }
   },
-  {
-    "id": "proof_002",
-    "claimantName": "Instagram seller dispute",
-    "sellerVpa": "claim-store@upi",
-    "amount": 2199,
-    "status": "TAMPERED",
-    "riskScore": 84,
-    "createdAt": "2026-05-27T11:34:00.000Z"
+  "secondary": {
+    "label": "Seller Profiles",
+    "route": "/seller-profiles"
   },
-  {
-    "id": "proof_003",
-    "claimantName": "QR mismatch case",
-    "sellerVpa": "eventpass@upi",
-    "amount": 1250,
-    "status": "QR_MISMATCH",
-    "riskScore": 76,
-    "createdAt": "2026-05-27T11:38:00.000Z"
+  "domain": {
+    "label": "Proof Verification",
+    "endpoint": "/proof-verification",
+    "cta": "Verify Receipt Proof",
+    "payload": {
+      "ocrConfidence": 0.91,
+      "qrVpaMatch": false,
+      "utrFormatValid": true,
+      "templateTamperScore": 0.68,
+      "duplicateHashMatch": true,
+      "sellerTrustScore": 0.38
+    },
+    "resultKey": "status",
+    "riskKey": "riskScore"
   }
-];
-const fallbackSecondary = [
-  {
-    "id": "seller_001",
-    "sellerName": "Sweet Lane Bakery",
-    "vpa": "sweetlane@upi",
-    "trustScore": 91,
-    "verifiedClaims": 141,
-    "disputes": 2,
-    "createdAt": "2026-05-27T10:10:00.000Z"
-  },
-  {
-    "id": "seller_002",
-    "sellerName": "Claim Store",
-    "vpa": "claim-store@upi",
-    "trustScore": 38,
-    "verifiedClaims": 4,
-    "disputes": 9,
-    "createdAt": "2026-05-27T10:15:00.000Z"
-  }
-];
-const domainPayload = {
-  "templateConfidence": 0.52,
-  "qrVpaMatches": false,
-  "utrFormatValid": false,
-  "imageTamperScore": 0.73,
-  "duplicateScore": 0.68,
-  "sellerTrustScore": 0.36,
-  "bankConfirmationPresent": false
-};
-const createPayload = {
-  "claimantName": "Instagram Seller Case",
-  "sellerVpa": "claim-store@upi",
-  "amount": 2199,
-  "status": "TAMPERED",
-  "riskScore": 84
-};
+} as const;
+
+const ICONS = [Route, Activity, Database, BrainCircuit, ShieldCheck, FileCheck2, Network, Lock];
 
 export default function App() {
-  const [role, setRole] = useState('TRUST_MODERATOR');
-  const [primary, setPrimary] = useState<RecordItem[]>(fallbackPrimary);
-  const [secondary, setSecondary] = useState<RecordItem[]>(fallbackSecondary);
-  const [metrics, setMetrics] = useState<Metrics>({ kpis: { primaryRecords: fallbackPrimary.length, secondaryRecords: fallbackSecondary.length, totalAmount: 0, averageRisk: 0 } });
-  const [result, setResult] = useState<DomainResult | null>(null);
-  const [error, setError] = useState('');
-  const riskyCount = useMemo(() => primary.filter((item) => Number(item.riskScore || item.impulseScore || 0) >= 70).length, [primary]);
+  const [role, setRole] = useState<string>(CONFIG.defaultRole);
+  const [activeTabId, setActiveTabId] = useState(workflowTabs[0].id);
+  const [primary, setPrimary] = useState<RecordItem[]>([]);
+  const [secondary, setSecondary] = useState<RecordItem[]>([]);
+  const [selected, setSelected] = useState<RecordItem | null>(null);
+  const [metrics, setMetrics] = useState<Metrics>({ kpis: {} });
+  const [domainResult, setDomainResult] = useState<DomainResult | null>(null);
+  const [mockResult, setMockResult] = useState<MockUpiResult | null>(null);
+  const [notice, setNotice] = useState('Ready: all CTAs use synthetic test data and mocked UPI rails.');
+  const [amount, setAmount] = useState(875);
+
+  const activeTab = getWorkflowTab(activeTabId);
+  const highRiskCount = useMemo(() => primary.filter((item) => Number(item.riskScore ?? item.impulseScore ?? 0) >= 70).length, [primary]);
+  const totalAmount = useMemo(() => primary.reduce((sum, item) => sum + Number(item.amount ?? item.monthlyInflow ?? item.amountAtRisk ?? 0), 0), [primary]);
 
   async function load() {
     try {
       const [nextMetrics, nextPrimary, nextSecondary] = await Promise.all([
         apiRequest<Metrics>('/metrics', role),
-        apiRequest<RecordItem[]>('/proof-checks', role),
-        apiRequest<RecordItem[]>('/seller-profiles', role)
+        apiRequest<RecordItem[]>(CONFIG.primary.route, role),
+        apiRequest<RecordItem[]>(CONFIG.secondary.route, role)
       ]);
       setMetrics(nextMetrics);
       setPrimary(nextPrimary);
       setSecondary(nextSecondary);
-      setError('');
-    } catch {
-      setError('API offline: showing synthetic portfolio data.');
+      setSelected(nextPrimary[0] ?? null);
+      setNotice('Loaded live synthetic API data through RBAC role ' + role + '.');
+    } catch (error) {
+      setNotice('API request failed: ' + (error instanceof Error ? error.message : 'unknown error'));
     }
   }
 
@@ -116,84 +111,190 @@ export default function App() {
     void load();
   }, [role]);
 
-  async function runDecision() {
-    const response = await apiRequest<DomainResult>('/proof-verification', role, { method: 'POST', body: JSON.stringify(domainPayload) });
-    setResult(response);
+  async function runDomainDecision() {
+    try {
+      const response = await apiRequest<DomainResult>(CONFIG.domain.endpoint, role, {
+        method: 'POST',
+        body: JSON.stringify(CONFIG.domain.payload)
+      });
+      setDomainResult(response);
+      setActiveTabId(workflowTabs.find((tab) => tab.apiFlow.includes(CONFIG.domain.endpoint))?.id ?? activeTabId);
+      setNotice(CONFIG.domain.label + ' completed with reason-code output.');
+    } catch (error) {
+      setNotice('Decision failed: ' + (error instanceof Error ? error.message : 'unknown error'));
+    }
+  }
+
+  async function runMockRail(tab: WorkflowTab = activeTab) {
+    try {
+      const payload = buildMockUpiRequest(tab, amount);
+      const response = await apiRequest<MockUpiResult>('/mock-upi', role, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setMockResult(response);
+      setNotice('Mock UPI rail returned ' + response.npciStatus + ' with RRN ' + response.rrn + '.');
+    } catch (error) {
+      setNotice('Mock UPI failed: ' + (error instanceof Error ? error.message : 'unknown error'));
+    }
   }
 
   async function createRecord() {
-    const created = await apiRequest<RecordItem>('/proof-checks', role, { method: 'POST', body: JSON.stringify(createPayload) });
-    setPrimary([created, ...primary]);
+    try {
+      const created = await apiRequest<RecordItem>(CONFIG.primary.route, role, {
+        method: 'POST',
+        body: JSON.stringify(CONFIG.primary.createPayload)
+      });
+      setPrimary([created, ...primary]);
+      setSelected(created);
+      setActiveTabId(workflowTabs[2]?.id ?? activeTabId);
+      setNotice('Created test record ' + created.id + ' through ' + CONFIG.primary.route + '.');
+    } catch (error) {
+      setNotice('Create failed: ' + (error instanceof Error ? error.message : 'unknown error'));
+    }
   }
 
-  async function removeRecord(id: string) {
-    await apiRequest<void>('/proof-checks/' + id, role, { method: 'DELETE' });
-    setPrimary(primary.filter((item) => item.id !== id));
+  async function patchSelected() {
+    const target = selected ?? primary[0];
+    if (!target) {
+      setNotice('No record available to patch.');
+      return;
+    }
+    try {
+      const updated = await apiRequest<RecordItem>(CONFIG.primary.route + '/' + target.id, role, {
+        method: 'PATCH',
+        body: JSON.stringify(CONFIG.primary.patchPayload)
+      });
+      setPrimary(primary.map((item) => item.id === updated.id ? updated : item));
+      setSelected(updated);
+      setNotice('Patched drill-down record ' + updated.id + ' with review outcome.');
+    } catch (error) {
+      setNotice('Patch failed: ' + (error instanceof Error ? error.message : 'unknown error'));
+    }
+  }
+
+  async function removeSelected() {
+    const target = selected ?? primary[0];
+    if (!target) {
+      setNotice('No record available to delete.');
+      return;
+    }
+    try {
+      await apiRequest<void>(CONFIG.primary.route + '/' + target.id, role, { method: 'DELETE' });
+      const nextPrimary = primary.filter((item) => item.id !== target.id);
+      setPrimary(nextPrimary);
+      setSelected(nextPrimary[0] ?? null);
+      setNotice('Deleted ' + target.id + '. Switch to non-admin roles to see RBAC denial.');
+    } catch (error) {
+      setNotice('Delete failed: ' + (error instanceof Error ? error.message : 'unknown error'));
+    }
+  }
+
+  function openDrillDown(tab: WorkflowTab) {
+    setActiveTabId(tab.id);
+    setSelected(primary[0] ?? null);
+    setNotice(tab.drillDown);
   }
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand"><img src="/logo.svg" alt="" /><span>UPI Social Proof Ledger</span></div>
-        {['Command Center', 'Payment Proof Checks', 'Seller Trust Profiles', 'Risk Review', 'Audit Trail', 'Reports'].map((item, index) => (
-          <button className={index === 0 ? 'nav-item active' : 'nav-item'} key={item}><ShieldCheck size={16} />{item}</button>
-        ))}
-        <div className="region-card"><span>Mode</span><strong>UPI simulator</strong><small>Synthetic data only</small></div>
+        <div className="brand"><img src="/logo.svg" alt="" /><span>{CONFIG.title}</span></div>
+        {workflowTabs.map((item, index) => {
+          const Icon = ICONS[index % ICONS.length];
+          return (
+            <button className={item.id === activeTabId ? 'nav-item active' : 'nav-item'} key={item.id} onClick={() => openDrillDown(item)} aria-pressed={item.id === activeTabId}>
+              <Icon size={16} />{item.label}
+            </button>
+          );
+        })}
+        <div className="region-card"><span>Sandbox</span><strong>NPCI UPI Mock</strong><small>Live synthetic endpoints</small></div>
       </aside>
       <main>
         <header className="topbar">
           <div>
-            <h1>AI verification layer for payment claims, fake screenshots, QR trust, and social-commerce proof.</h1>
-            <p>A privacy-preserving proof layer that simulates receipt forensics, QR/VPA matching, duplicate proof detection, seller trust scoring, and dispute-ready GenAI explanations for social commerce.</p>
+            <h1>{CONFIG.title}</h1>
+            <p>{CONFIG.short}</p>
           </div>
           <div className="top-actions">
             <span className="live-dot">Live</span>
-            <select value={role} onChange={(event) => setRole(event.target.value)}>{roles.map((item) => <option key={item}>{item}</option>)}</select>
+            <select value={role} onChange={(event) => setRole(event.target.value)} aria-label="RBAC role">{CONFIG.roles.map((item) => <option key={item}>{item}</option>)}</select>
             <button onClick={load}><RefreshCw size={16} />Refresh</button>
           </div>
         </header>
-        {error ? <div className="notice">{error}</div> : null}
+        <div className="notice">{notice}</div>
         <section className="kpi-grid">
-          <Metric title="Payment Proof Checks" value={String(metrics.kpis.primaryRecords ?? primary.length)} detail="operational records" icon={<Activity />} />
-          <Metric title="Seller Trust Profiles" value={String(metrics.kpis.secondaryRecords ?? secondary.length)} detail="policy and trust memory" icon={<FileCheck2 />} />
-          <Metric title="Risk Watch" value={String(riskyCount)} detail="high-friction cases" icon={<BrainCircuit />} />
-          <Metric title="Avg Risk" value={String(metrics.kpis.averageRisk ?? 0)} detail="synthetic model signal" icon={<Lock />} />
+          <Metric title={CONFIG.primary.label} value={String(primary.length)} detail="live API records" icon={<Activity />} />
+          <Metric title={CONFIG.secondary.label} value={String(secondary.length)} detail="policy/reference records" icon={<FileCheck2 />} />
+          <Metric title="Risk Watch" value={String(highRiskCount)} detail="records above review line" icon={<AlertTriangle />} />
+          <Metric title="Amount Signal" value={formatValue('amount', totalAmount)} detail="synthetic portfolio value" icon={<ShieldCheck />} />
         </section>
         <section className="workspace-grid">
           <div className="panel span-two">
-            <div className="panel-title"><Sparkles size={18} /> Proof Status</div>
-            <div className="simulator-row">
-              <button onClick={runDecision}><Sparkles size={16} />Verify Proof</button>
-              <button onClick={createRecord}><Activity size={16} />Create Record</button>
+            <div className="panel-title"><Sparkles size={18} /> {activeTab.label}</div>
+            <p>{activeTab.description}</p>
+            <div className="tab-detail">
+              <div><span>CTA</span><strong>{activeTab.cta}</strong></div>
+              <div><span>Drill-down</span><strong>{activeTab.drillDown}</strong></div>
+              <div><span>API Flow</span><strong>{activeTab.apiFlow}</strong></div>
             </div>
-            <div className="recommendation-card">
-              <div><span>Decision</span><strong>{String(result?.decision || result?.status || 'Run simulator')}</strong></div>
-              <div><span>Risk</span><strong>{String(result?.riskScore || result?.impulseScore || 0)}</strong></div>
-              <p>{String(result?.explanation || 'The model evaluates synthetic signals and returns reason codes for a review-ready decision.')}</p>
+            <div className="simulator-row">
+              <label>Mock amount <input aria-label="Mock amount" type="number" value={amount} onChange={(event) => setAmount(Number(event.target.value))} /></label>
+              <button onClick={runDomainDecision}><BrainCircuit size={16} />{CONFIG.domain.cta}</button>
+              <button onClick={() => runMockRail()}><Network size={16} />Mock UPI/NPCI</button>
+              <button onClick={createRecord}><Activity size={16} />Create Test Data</button>
+              <button onClick={patchSelected}><CheckCircle2 size={16} />Mark Reviewed</button>
+              <button onClick={removeSelected}><Trash2 size={16} />Delete Selected</button>
             </div>
           </div>
           <div className="panel">
-            <div className="panel-title"><ShieldCheck size={18} /> Reason Codes</div>
-            {(result?.reasonCodes || ['READY_FOR_SIMULATION', 'RBAC_ENABLED', 'SYNTHETIC_ONLY']).map((code) => <div className="node-row" key={code}><strong>{code}</strong><span>Explainability signal</span></div>)}
+            <div className="panel-title"><Lock size={18} /> Decision Output</div>
+            <div className="recommendation-card">
+              <div><span>{CONFIG.domain.resultKey}</span><strong>{String(domainResult?.[CONFIG.domain.resultKey] ?? 'Run model')}</strong></div>
+              <div><span>{CONFIG.domain.riskKey}</span><strong>{formatValue(CONFIG.domain.riskKey, domainResult?.[CONFIG.domain.riskKey] ?? 0)}</strong></div>
+              <p>{String(domainResult?.explanation ?? 'Use the model CTA to generate explainable reason codes from the domain engine.')}</p>
+            </div>
+            <div className="reason-list">
+              {(domainResult?.reasonCodes ?? ['READY_FOR_TEST_DATA', 'RBAC_ENABLED', 'MOCK_UPI_READY']).map((code) => <span className="chip" key={code}>{code}</span>)}
+            </div>
+          </div>
+          <div className="panel span-two">
+            <div className="panel-title"><Network size={18} /> Mock NPCI/UPI Response</div>
+            {mockResult ? (
+              <div className="mock-card">
+                <strong>{mockResult.npciStatus} / {mockResult.responseCode}</strong>
+                <span>RRN: {mockResult.rrn}</span>
+                <span>Txn: {mockResult.txnId}</span>
+                <span>Hold: {mockResult.settlement.preSettlementHold ? 'Yes' : 'No'}</span>
+                <p>{mockResult.responseMessage}</p>
+                <div className="reason-list">{mockResult.risk.reasonCodes.map((code) => <span className="chip" key={code}>{code}</span>)}</div>
+              </div>
+            ) : <p>Run Mock UPI/NPCI to see a sandbox response with RRN, bank reference, response code, webhook status, and settlement behavior.</p>}
+          </div>
+          <div className="panel">
+            <div className="panel-title"><Eye size={18} /> Drill-down</div>
+            {selected ? <DetailCard item={selected} /> : <p>Select or create a record to open a drill-down.</p>}
           </div>
           <div className="panel span-three">
-            <div className="panel-title"><Lock size={18} /> Payment Proof Checks CRUD</div>
+            <div className="panel-title"><Database size={18} /> {CONFIG.primary.label} End-to-End CRUD</div>
             <div className="table">
-              <div className="table-row header">{primaryColumns.map((column) => <span key={column}>{column}</span>)}<span>Action</span></div>
+              <div className="table-row header">{CONFIG.primary.columns.map((column) => <span key={column}>{column}</span>)}<span>Action</span></div>
               {primary.map((item) => {
-                const risk = Number(item.riskScore || item.impulseScore || 0);
+                const risk = Number(item.riskScore ?? item.impulseScore ?? 0);
                 return (
-                  <div className="table-row" key={item.id}>
-                    {primaryColumns.map((column) => <span className={/risk|impulse/i.test(column) ? 'status ' + toneForRisk(risk) : ''} key={column}>{formatValue(column, item[column])}</span>)}
-                    <span><button className="icon-button" onClick={() => void removeRecord(item.id)}><Trash2 size={15} /></button></span>
-                  </div>
+                  <button className="table-row table-button" key={item.id} onClick={() => setSelected(item)}>
+                    {CONFIG.primary.columns.map((column) => <span className={/risk|impulse|score/i.test(column) ? 'status ' + toneForRisk(risk) : ''} key={column}>{formatValue(column, item[column])}</span>)}
+                    <span><Eye size={15} /> Open</span>
+                  </button>
                 );
               })}
             </div>
           </div>
           <div className="panel span-three">
-            <div className="panel-title"><FileCheck2 size={18} /> Seller Trust Profiles</div>
-            <div className="secondary-grid">{secondary.map((item) => <div className="case-card" key={item.id}>{Object.entries(item).filter(([key]) => !['id', 'createdAt'].includes(key)).slice(0, 4).map(([key, value]) => <p key={key}><strong>{key}</strong>: {formatValue(key, value)}</p>)}</div>)}</div>
+            <div className="panel-title"><FileCheck2 size={18} /> {CONFIG.secondary.label}</div>
+            <div className="secondary-grid">
+              {secondary.map((item) => <DetailCard item={item} key={item.id} />)}
+            </div>
           </div>
         </section>
       </main>
@@ -201,7 +302,10 @@ export default function App() {
   );
 }
 
+function DetailCard({ item }: { item: RecordItem }) {
+  return <div className="case-card">{Object.entries(item).filter(([key]) => !['id', 'createdAt'].includes(key)).slice(0, 6).map(([key, value]) => <p key={key}><strong>{key}</strong>: {formatValue(key, value)}</p>)}</div>;
+}
+
 function Metric({ title, value, detail, icon }: { title: string; value: string; detail: string; icon: ReactNode }) {
   return <div className="metric-card"><div>{icon}</div><span>{title}</span><strong>{value}</strong><small>{detail}</small></div>;
 }
-
