@@ -1,14 +1,17 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
+import { signDemoToken, type Role } from '../src/auth.js';
 import { createTestDatabase } from '../src/db.js';
+
+const bearer = (role: Role) => 'Bearer ' + signDemoToken(role);
 
 describe('UPI Social Proof Ledger API', () => {
   it('returns an explainable domain decision', async () => {
     const app = createApp(createTestDatabase());
     const response = await request(app)
       .post('/api/proof-verification')
-      .set('x-user-role', 'TRUST_MODERATOR')
+      .set('Authorization', bearer('TRUST_MODERATOR'))
       .send({
   "templateConfidence": 0.52,
   "qrVpaMatches": false,
@@ -42,7 +45,7 @@ describe('UPI Social Proof Ledger API', () => {
 
     const created = await request(app)
       .post('/api/proof-checks')
-      .set('x-user-role', 'TRUST_MODERATOR')
+      .set('Authorization', bearer('TRUST_MODERATOR'))
       .send({
   "claimantName": "Instagram Seller Case",
   "sellerVpa": "claim-store@upi",
@@ -56,12 +59,12 @@ describe('UPI Social Proof Ledger API', () => {
 
     const denied = await request(app)
       .delete('/api/proof-checks/' + created.body.id)
-      .set('x-user-role', 'TRUST_MODERATOR');
+      .set('Authorization', bearer('TRUST_MODERATOR'));
     expect(denied.status).toBe(403);
 
     const deleted = await request(app)
       .delete('/api/proof-checks/' + created.body.id)
-      .set('x-user-role', 'ADMIN');
+      .set('Authorization', bearer('ADMIN'));
     expect(deleted.status).toBe(204);
   });
 
@@ -69,7 +72,7 @@ describe('UPI Social Proof Ledger API', () => {
     const app = createApp(createTestDatabase());
     const response = await request(app)
       .post('/api/mock-upi')
-      .set('x-user-role', 'OPS_MANAGER')
+      .set('Authorization', bearer('TRUST_MODERATOR'))
       .send({
         txnId: 'TXN-DEMO-001',
         payerVpa: 'payer@oksbi',
