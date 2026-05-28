@@ -60,12 +60,13 @@ const CONFIG = {
     "endpoint": "/proof-verification",
     "cta": "Verify Receipt Proof",
     "payload": {
-      "ocrConfidence": 0.91,
-      "qrVpaMatch": false,
+      "templateConfidence": 0.91,
+      "qrVpaMatches": false,
       "utrFormatValid": true,
-      "templateTamperScore": 0.68,
-      "duplicateHashMatch": true,
-      "sellerTrustScore": 0.38
+      "imageTamperScore": 0.68,
+      "duplicateScore": 0.72,
+      "sellerTrustScore": 0.38,
+      "bankConfirmationPresent": false
     },
     "resultKey": "status",
     "riskKey": "riskScore"
