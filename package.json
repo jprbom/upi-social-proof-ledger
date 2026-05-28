@@ -30,5 +30,6 @@
   "homepage": "https://github.com/jprbom/upi-social-proof-ledger#readme",
   "bugs": {
     "url": "https://github.com/jprbom/upi-social-proof-ledger/issues"
-  }
+  },
+  "license": "UNLICENSED"
 }
