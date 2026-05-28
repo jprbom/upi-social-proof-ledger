@@ -1,0 +1,36 @@
+# Prototype Audit Response
+
+## Honest Status
+
+UPI Social Proof Ledger is a runnable portfolio-grade prototype, not a production receipt-forensics or bank-confirmation system. It demonstrates payment-proof risk decisioning, synthetic CRUD workflows, RBAC simulation, a mocked UPI/NPCI response, tests, CI, Docker packaging, and SDLC documentation.
+
+It should be presented as: **a social-commerce payment-proof verification prototype using synthetic OCR/QR/tamper signals.**
+
+It should not be presented as: **a real OCR, image-forensics, UTR-validation, or bank-confirmed proof platform.**
+
+## What Is Real Today
+
+- React dashboard with working tabs, CTAs, drill-downs, CRUD, and RBAC role selection.
+- Express API with Zod validation, Helmet, rate limiting, CORS, and permission middleware.
+- Domain endpoint for proof verification with reason codes and dispute-friendly explanation.
+- Mock NPCI/UPI rail returning RRN, UPI request id, bank reference, response code, settlement state, risk decision, reason codes, and callback metadata.
+- Local JSON persistence for demo review.
+- Backend tests, frontend helper tests, local browser E2E smoke script, Docker files, and CI verify workflow.
+- Python ML/DL training demonstration that creates a model-card artifact from synthetic data.
+
+## Prototype Boundaries
+
+- RBAC is a simulator. It uses `x-user-role`; production would require OIDC/JWT, signed sessions, tenant isolation, KMS-backed secrets, and immutable audit logs.
+- Current proof logic accepts precomputed OCR, QR, tamper, duplicate, and seller-trust signals; it does not yet perform real image processing.
+- The ML script is educational and synthetic, not statistically valid image-forensics or receipt-fraud training.
+- Persistence is JSON file storage, not an evidence vault, case store, or privacy-preserving proof ledger.
+- The UPI rail is fully mocked and does not connect to banks, PSPs, UTR confirmation APIs, chargeback systems, or dispute networks.
+
+## Serious Upgrade Path
+
+- Add screenshot upload, OCR extraction, QR decoding, and UTR format parsing.
+- Add VPA/name mismatch checks, duplicate screenshot perceptual hashing, metadata checks, and compression/template mismatch heuristics.
+- Add dispute evidence PDF export with masked fields and privacy-safe redaction.
+- Add scenario tests for genuine receipt, edited receipt, reused screenshot, QR/VPA mismatch, and missing bank confirmation.
+- Add seller reputation graph and proof-sharing controls for WhatsApp/Instagram commerce workflows.
+
